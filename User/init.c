@@ -8,53 +8,11 @@
 #include "consts.h"
 
 /*********************************************************************
- * @fn      IIC_Init
- *
- * @brief   Initializes the IIC peripheral.
- *
- * Pins PC1, PC2 are initialized here
- *
- * @return  none
- */
-void IIC_Init(u32 bound, u16 address)
-{
-	GPIO_InitTypeDef GPIO_InitStructure =
-	{ 0 };
-	I2C_InitTypeDef I2C_InitTSturcture =
-	{ 0 };
-
-	RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOC | RCC_APB2Periph_AFIO, ENABLE);
-	RCC_APB1PeriphClockCmd( RCC_APB1Periph_I2C1, ENABLE);
-
-	GPIOC->BSHR = GPIO_Pin_2;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_Init( GPIOC, &GPIO_InitStructure);
-
-	GPIOC->BSHR = GPIO_Pin_1;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_Init( GPIOC, &GPIO_InitStructure);
-
-	I2C_InitTSturcture.I2C_ClockSpeed = bound;
-	I2C_InitTSturcture.I2C_Mode = I2C_Mode_I2C;
-	I2C_InitTSturcture.I2C_DutyCycle = I2C_DutyCycle_16_9;
-	I2C_InitTSturcture.I2C_OwnAddress1 = address;
-	I2C_InitTSturcture.I2C_Ack = I2C_Ack_Enable;
-	I2C_InitTSturcture.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-	I2C_Init( I2C1, &I2C_InitTSturcture);
-
-	I2C_Cmd( I2C1, ENABLE);
-}
-
-/*********************************************************************
  * @fn      UART_Init
  *
  * @brief   Initializes the UART peripheral
  *
- * Under HMI_PCB, pin PD6 is initialized here
+ * Under SOP8, pin PD6 is initialized here
  *
  * Under BOB, pin PD5 and PD6 are initialized here
  *
@@ -70,7 +28,7 @@ void UART_Init(void)
 		RCC_APB2Periph_GPIOD |
 		RCC_APB2Periph_AFIO, ENABLE);
 
-#if defined(HMI_PCB)
+#if defined(SOP8)
 	// pin 1 with PD6 is used as the UART half-duplex pin
 	// this pin is high by default.
 	GPIOD->BSHR = GPIO_Pin_6;
@@ -107,9 +65,9 @@ void UART_Init(void)
 	USART_Init(USART1, &USART_InitStructure);
 	USART_Cmd(USART1, ENABLE);
 
-#if defined(HMI_PCB)
+#if defined(SOP8)
 	USART_HalfDuplexCmd(USART1, ENABLE);
-#endif // HMI_PCB
+#endif // SOP8
 	// interrputs
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 	USART1->CTLR1 |= USART_CTLR1_TCIE;
@@ -132,7 +90,7 @@ void APP_GPIO_Init(void)
 			RCC_APB2Periph_GPIOC |
 			RCC_APB2Periph_GPIOD, ENABLE);
 
-#if defined(HMI_PCB)
+#if defined(SOP8)
 	// Pin 1 is handled by the UART function
 	
 	// Pin 2 is the VSS pin
@@ -156,7 +114,7 @@ void APP_GPIO_Init(void)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
-#endif // HMI_PCB
+#endif // SOP8
 #if defined(BOB)
 	// Pin 1 is DIR (PD4)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
@@ -260,43 +218,77 @@ void APP_GPIO_Init(void)
  */
 void TIME_Init(void)
 {
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
-	TIM_OCInitTypeDef TIM_OCInitStructure;
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitSt = {0};
+	TIM_ICInitTypeDef TIM_ICInitSt = {0};
+	TIM_OCInitTypeDef TIM_OCInitSt = {0};
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1 | RCC_APB2Periph_TIM2, ENABLE);
 
 	TIM_DeInit(TIM1);
 
-	// configure timebase
-	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInitStructure.TIM_Period = 100U - 1U;
-	TIM_TimeBaseInitStructure.TIM_Prescaler = 15U - 1U;
-	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0U;
-	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseInitStructure);
+	// configure timebase TIM1
+	TIM_TimeBaseInitSt.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInitSt.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitSt.TIM_Period = 100U - 1U;
+	TIM_TimeBaseInitSt.TIM_Prescaler = 15U - 1U;
+	TIM_TimeBaseInitSt.TIM_RepetitionCounter = 0U;
+	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseInitSt);
 
 	TIM_ARRPreloadConfig(TIM1, ENABLE);
 	TIM_InternalClockConfig(TIM1);
 	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Update);
-
-	// configure output compare
-	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Disable;
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
-	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset;
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_Pulse = 0U;
-
-	TIM_OC4Init(TIM1, &TIM_OCInitStructure);
-	TIM_CtrlPWMOutputs(TIM1, ENABLE);
-	TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
-	TIM1->CH4CVR = 0u;
 
 	// configure interrupts
 	TIM_ClearFlag(TIM1, TIM_FLAG_Update);
 	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
 	NVIC_SetPriority(TIM1_UP_IRQn, NVIC_PriorityGroup_1);
 	NVIC_EnableIRQ(TIM1_UP_IRQn);
+
+	TIM_StructInit(&TIM_TimeBaseInitSt);
+
+	// configure timebase TIM2
+	TIM_TimeBaseStructInit(&TIM_TimeBaseInitSt);
+	TIM_TimeBaseInitSt.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInitSt.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitSt.TIM_Period = 3514U - 1U;
+	TIM_TimeBaseInitSt.TIM_Prescaler = 52U - 1U;
+	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitSt);
+
+	TIM_InternalClockConfig(TIM2);
+	TIM_SelectInputTrigger(TIM2, TIM_TS_TI2FP2);
+	TIM_SelectSlaveMode(TIM2, TIM_SlaveMode_Trigger);
+	TIM_SelectOnePulseMode(TIM2, TIM_OPMode_Single);
+	TIM_ITConfig(TIM2, TIM2_IT_Update, ENABLE);
+	NVIC_SetPriority(TIM2_UP_IRQn, NVIC_PriorityGroup_1);
+	NVIC_EnableIRQ(TIM2_UP_IRQn);
+
+	// configure OC1 on TIM2
+	TIM_OCStructInit(&TIM_OCInitSr);
+	TIM_OCInitSr.TIM_OCMode = TIM_OCMode_PWM1;
+	TIM_OCInitSr.TIM_OutputState = TIM_OutputState_Enable; // debugging
+	TIM_OCInitSr.TIM_OutputNState = TIM_OutputNState_Disable;
+	TIM_OCInitSr.TIM_Pulse = 88U;
+	TIM_OCInitSr.TIM_OCPolarity = TIM_OCPolarity_High;
+	TIM_OCInitSr.TIM_OCNPolarity = TIM_OCPolarity_High;
+	TIM_OCInitSr.TIM_OCIdleState = TIM_OCIdleState_Reset;
+	TIM_OCInitSr.TIM_OCNIdleState = TIM_OCIdleState_Reset;
+	TIM_OC1Init(TIM2, &TIM_OCInitSr);
+	TIM_ITConfig(TIM2, TIM_IT_CC1, ENABLE);
+
+	TIM_CtrlPWMOutputs(TIM2, ENABLE); // debugging
+
+	// configure IC2 on TIM2
+	TIM_ICStructInit(&TIM_ICInitSt);
+	TIM_ICInitSt.TIM_Channel = TIM_Channel_2;
+	TIM_ICInitSt.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+	TIM_ICInitSr.TIM_ICFilter = 0;
+	TIM_ICInitSr.TIM_ICPolarity = TIM_ICPolarity_Rising;
+	TIM_ICInitSr.TIM_ICSelection = TIM_ICSelection_DirectTI;
+	TIM_ICInit(TIM2, &TIM_ICInitSt);
+
+	TIM_ITConfig(TIM2, TIM_IT_CC2, ENABLE);
+	NVIC_SetPriority(TIM2_CC_IRQn, NVIC_PriorityGroup_1);
+	NVIC_EnableIRQ(TIM2_CC_IRQn);
+	
+	
 }

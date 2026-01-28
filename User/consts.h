@@ -34,13 +34,13 @@
 // breakout board
 //#define BOB = 1
 // PCB
-#define HMI_PCB = 1
+#define SOP8 = 1
 
-#if defined(BOB) && defined(HMI_PCB)
+#if defined(BOB) && defined(SOP8)
 #error "Only one board is supposed to be defined"
-#endif // BOB && HMI_PCB
+#endif // BOB && SOP8
 
-#if !defined(BOB) && !defined(HMI_PCB)
+#if !defined(BOB) && !defined(SOP8)
 #error "At least one board type must be defined"
 #endif
 
@@ -65,7 +65,7 @@
 #endif // BOB
 
 // debug output functions
-#if defined(HMI_PCB)
+#if defined(SOP8)
 #define M_T1_START()
 #define M_T1_END()
 #define M_USART_START()
@@ -73,7 +73,7 @@
 #define M_LOOP_OVER()
 #define M_MAIN_START()
 #define M_MAIN_END()
-#endif // HMI_PCB
+#endif // SOP8
 
 #if defined(BOB)
 #define M_T1_START() M_DBG_2_ACT()

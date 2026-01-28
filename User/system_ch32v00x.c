@@ -24,7 +24,7 @@
 //#define SYSCLK_FREQ_24MHz_HSE   HSE_VALUE
 //#define SYSCLK_FREQ_48MHz_HSE   48000000
 
-#if defined(HMI_PCB)
+#if defined(SOP8)
 #define SYSCLK_FREQ_24MHZ_HSI   HSI_VALUE
 #endif // HMI_PCB
 #if defined(BOB)

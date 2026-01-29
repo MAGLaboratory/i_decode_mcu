@@ -166,6 +166,7 @@ void TIM2_IRQHandler(void)
 		if (bit_i >= 16)
 		{
 			bit_i = 0;
+			// byte doublbing defaults to 0 if the bytes do not match
 			u8 write_val = ws_bit[0u] == ws_bit[1u] ? ws_bit[1u] : 0u;
 			if (byte_i < C_LEN_MSG)
 			{
@@ -180,7 +181,8 @@ void TIM2_IRQHandler(void)
 			ws_bit[1] = 0;
 		}
 		u8 val = (GPIOC->INDR & GPIO_Pin_2) != RESET;
-		ws_bit[bit_i >> 3U] = (u8)(ws_bit[bit_i >> 3U] << 1U) | val;
+		// bit order is transmitted LSB to MSB
+		ws_bit[bit_i >> 3U] |= (u8)(val << (bit_i & 0x7u));
 		bit_i++;
 	}
 	M_TIM2_END();

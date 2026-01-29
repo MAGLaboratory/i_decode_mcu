@@ -103,16 +103,17 @@ void APP_GPIO_Init(void)
 
 	// Pin 4 is the VDD pin
 	//
-	// Pin 5 is handled by the I2C function
+	// Pin 5 
 	//
-	// Pin 6 is handled by the I2C function
-	//
-	// Pin 7: OUT (PC4)
-	// TODO: PWM?
-	// Pin 7 is on T1CH4
+	// Pin 6: T2CH2 inverter input (PC2)
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
+	// Pin 7: Debug? (PC4)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_30MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 #endif // SOP8
 #if defined(BOB)
@@ -150,8 +151,12 @@ void APP_GPIO_Init(void)
 
 	// Pin 11 is handled in the I2C function
 
-	// Pin 12 is handled in the I2C function
-
+	// Pin 12: T2CH2 inverter input (PC2)
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
+	
 	// Pin 13 PC3
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;

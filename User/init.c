@@ -214,6 +214,8 @@ void APP_GPIO_Init(void)
  *
  * Also, 100 is a good period rate for the PWM drive because it will directly
  * represent a duty cycle percentage.
+ * 
+ * TIM2 is initialized to have a period of 3.5 inverter bytes
  * @return  none
  */
 void TIME_Init(void)
@@ -222,7 +224,8 @@ void TIME_Init(void)
 	TIM_ICInitTypeDef TIM_ICInitSt = {0};
 	TIM_OCInitTypeDef TIM_OCInitSt = {0};
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1 | RCC_APB2Periph_TIM2, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 
 	TIM_DeInit(TIM1);
 
@@ -244,8 +247,6 @@ void TIME_Init(void)
 	NVIC_SetPriority(TIM1_UP_IRQn, NVIC_PriorityGroup_1);
 	NVIC_EnableIRQ(TIM1_UP_IRQn);
 
-	TIM_StructInit(&TIM_TimeBaseInitSt);
-
 	// configure timebase TIM2
 	TIM_TimeBaseStructInit(&TIM_TimeBaseInitSt);
 	TIM_TimeBaseInitSt.TIM_ClockDivision = TIM_CKD_DIV1;
@@ -258,21 +259,21 @@ void TIME_Init(void)
 	TIM_SelectInputTrigger(TIM2, TIM_TS_TI2FP2);
 	TIM_SelectSlaveMode(TIM2, TIM_SlaveMode_Trigger);
 	TIM_SelectOnePulseMode(TIM2, TIM_OPMode_Single);
-	TIM_ITConfig(TIM2, TIM2_IT_Update, ENABLE);
-	NVIC_SetPriority(TIM2_UP_IRQn, NVIC_PriorityGroup_1);
-	NVIC_EnableIRQ(TIM2_UP_IRQn);
+	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+	NVIC_SetPriority(TIM2_IRQn, NVIC_PriorityGroup_1);
+	NVIC_EnableIRQ(TIM2_IRQn);
 
 	// configure OC1 on TIM2
-	TIM_OCStructInit(&TIM_OCInitSr);
-	TIM_OCInitSr.TIM_OCMode = TIM_OCMode_PWM1;
-	TIM_OCInitSr.TIM_OutputState = TIM_OutputState_Enable; // debugging
-	TIM_OCInitSr.TIM_OutputNState = TIM_OutputNState_Disable;
-	TIM_OCInitSr.TIM_Pulse = 88U;
-	TIM_OCInitSr.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OCInitSr.TIM_OCNPolarity = TIM_OCPolarity_High;
-	TIM_OCInitSr.TIM_OCIdleState = TIM_OCIdleState_Reset;
-	TIM_OCInitSr.TIM_OCNIdleState = TIM_OCIdleState_Reset;
-	TIM_OC1Init(TIM2, &TIM_OCInitSr);
+	TIM_OCStructInit(&TIM_OCInitSt);
+	TIM_OCInitSt.TIM_OCMode = TIM_OCMode_PWM1;
+	TIM_OCInitSt.TIM_OutputState = TIM_OutputState_Enable; // debugging
+	TIM_OCInitSt.TIM_OutputNState = TIM_OutputNState_Disable;
+	TIM_OCInitSt.TIM_Pulse = 88U;
+	TIM_OCInitSt.TIM_OCPolarity = TIM_OCPolarity_High;
+	TIM_OCInitSt.TIM_OCNPolarity = TIM_OCPolarity_High;
+	TIM_OCInitSt.TIM_OCIdleState = TIM_OCIdleState_Reset;
+	TIM_OCInitSt.TIM_OCNIdleState = TIM_OCIdleState_Reset;
+	TIM_OC1Init(TIM2, &TIM_OCInitSt);
 	TIM_ITConfig(TIM2, TIM_IT_CC1, ENABLE);
 
 	TIM_CtrlPWMOutputs(TIM2, ENABLE); // debugging
@@ -281,14 +282,10 @@ void TIME_Init(void)
 	TIM_ICStructInit(&TIM_ICInitSt);
 	TIM_ICInitSt.TIM_Channel = TIM_Channel_2;
 	TIM_ICInitSt.TIM_ICPrescaler = TIM_ICPSC_DIV1;
-	TIM_ICInitSr.TIM_ICFilter = 0;
-	TIM_ICInitSr.TIM_ICPolarity = TIM_ICPolarity_Rising;
-	TIM_ICInitSr.TIM_ICSelection = TIM_ICSelection_DirectTI;
+	TIM_ICInitSt.TIM_ICFilter = 0;
+	TIM_ICInitSt.TIM_ICPolarity = TIM_ICPolarity_Rising;
+	TIM_ICInitSt.TIM_ICSelection = TIM_ICSelection_DirectTI;
 	TIM_ICInit(TIM2, &TIM_ICInitSt);
 
 	TIM_ITConfig(TIM2, TIM_IT_CC2, ENABLE);
-	NVIC_SetPriority(TIM2_CC_IRQn, NVIC_PriorityGroup_1);
-	NVIC_EnableIRQ(TIM2_CC_IRQn);
-	
-	
 }

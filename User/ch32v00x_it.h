@@ -15,10 +15,13 @@
 #include "debug.h"
 #include "consts.h"
 
-extern volatile u32 t1_count;
-extern volatile u8 modbus_arm;
-extern volatile u32 modbus_timer;
+extern vu32 t1_count;
+extern vu8 modbus_arm;
+extern vu32 modbus_timer;
+extern vu8 mvec;
+extern vu8 bit_i;
+extern vu8 byte_i;
+extern vu8 ws_bit[2];
+extern vu8 ws_byte[2][C_LEN_MSG];
 
 #endif /* __CH32V00x_IT_H */
-
-

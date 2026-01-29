@@ -41,17 +41,17 @@
 /* Types */
 
 /* Global variables */
-volatile u32 t1_count = 0;
+vu32 t1_count = 0;
 u32 last_t1_count = 0;
 u8 loop_overrun = 0;
 T_PETIT_MODBUS Petit;
-volatile u8 modbus_arm = false;
-volatile u32 modbus_timer;
+vu8 modbus_arm = false;
+vu32 modbus_timer;
 vu8 mvec = 0;
 vu8 bit_i = 0;
 vu8 byte_i = 0;
 vu8 ws_bit[2] = {0};
-vu8 ws_byte[6] = {0};
+vu8 ws_byte[2][C_LEN_MSG] = {0};
 
 void PetitPortDirTx(void)
 {
@@ -93,6 +93,26 @@ void PetitT15TimerStop(void)
 	modbus_arm = false;
 }
 
+ pb_t PetitPortInputRegRead(pu16_t Addr, pu16_t* Data)
+ {
+	pu16_t tmpDat = 0;
+	if (Addr == 0)
+	{
+		tmpDat = ws_byte[M_MVEC_GET_TX(mvec)][Addr];
+	}
+	else
+	{
+		tmpDat = (ws_byte[M_MVEC_GET_TX(mvec)][2u*Addr] << 8u) |
+				ws_byte[M_MVEC_GET_TX(mvec)][2u*Addr-1u];
+	}
+	if (Addr == 3U)
+	{
+		mvec |= C_MVEC_READ; // set "read" bit
+	}
+	*Data = tmpDat;
+	return 1;
+ }
+
 /*********************************************************************
  * @fn      main
  *
@@ -118,8 +138,8 @@ int main(void)
 	// start time
 	TIM_Cmd(TIM1, ENABLE);
 	TIM_ClearFlag(TIM1, TIM_FLAG_Update);
+	TIM_ClearFlag(TIM2, TIM_IT_Update | TIM_IT_CC1 | TIM_IT_CC2);
 
-	IIC_TX(C_CH455_ADDR_SP, C_MY_CH455_SP);
 	while (1U)
 	{
 		// main loop timer overflow

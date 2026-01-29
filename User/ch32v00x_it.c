@@ -19,6 +19,7 @@ void NMI_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void HardFault_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void TIM1_UP_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+void TIM2_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 /*********************************************************************
  * @fn      NMI_Handler
@@ -82,6 +83,7 @@ void USART1_IRQHandler(void)
 {
 	M_USART_START();
 	pu8_t tmp;
+	// transmission complete
 	if (USART1->STATR & USART_STATR_TC)
 	{
 		// clear bit
@@ -91,6 +93,7 @@ void USART1_IRQHandler(void)
 			PetitPortDirRx();
 		}
 	}
+	// transmission buffer empty
 	if (USART1->STATR & USART_STATR_TXE)
 	{
 		// disable the interrupt or add more data
@@ -104,6 +107,7 @@ void USART1_IRQHandler(void)
 			USART1->CTLR1 &= ~USART_CTLR1_TXEIE;
 		}
 	}
+	// receive buffer *not* empty
 	if (USART1->STATR & USART_STATR_RXNE)
 	{
 		USART1->STATR = ~USART_STATR_RXNE;
@@ -111,5 +115,74 @@ void USART1_IRQHandler(void)
 		PetitRxBufferInsert(&Petit, tmp);
 	}
 	M_USART_END();
+	return;
+}
+
+void TIM2_IRQHandler(void)
+{
+	M_TIM2_START();
+	// falling edge
+	if ((TIM2->INTFR & TIM_IT_CC2) != RESET)
+	{
+		TIM2->INTFR = (u16)~TIM_IT_CC2; // clear interrupt bit
+		// timer setting change
+    	TIM1->SMCFGR &= (u16)~(0x2); // set slave mode to reset
+    	TIM1->CTLR1 &= (u16)~TIM_OPM; // set to repetitive mode
+    	TIM1->CTLR1 |= TIM_CEN; // run the timer continuously
+	}
+	// update interrupt
+	if ((TIM2->INTFR & TIM_IT_Update) != RESET)
+	{
+		TIM2->INTFR = (u16)~TIM_IT_Update;
+		// register a reset condition
+		if ((GPIOC->INDR & GPIO_Pin_2) != RESET)
+		{
+			// reset the structure if sent and new message is ready
+			if (mvec & C_MVEC_READ && byte_i >= 7)
+			{
+				// read the message count and increment
+				u8 count = ws_byte[M_MVEC_GET_RX(mvec)][0];
+				count += 1;
+
+				mvec ^= C_MVEC_RX;
+				mvec &= (u8)~C_MVEC_READ; // clear "read" bit
+				bit_i = 0;
+				byte_i = 0;
+
+				// write the message count
+				ws_byte[M_MVEC_GET_RX(mvec)][0] = count;
+			}
+
+			// timer settings
+			TIM2->CTLR1 &= (u16)~TIM_CEN; // disable timer
+    		TIM2->SMCFGR |= TIM_SlaveMode_Trigger; // set slave mode to trigger
+    		TIM2->CTLR1 |= TIM_OPM; // one pulse mode
+		}
+	}
+	// sample
+	if ((TIM2->INTFR & TIM_IT_CC1) != RESET)
+	{
+		TIM2->INTFR = (u16)~TIM_IT_CC1;
+		if (bit_i >= 16)
+		{
+			bit_i = 0;
+			u8 write_val = ws_bit[0u] == ws_bit[1u] ? ws_bit[1u] : 0u;
+			if (byte_i < C_LEN_MSG)
+			{
+				ws_byte[M_MVEC_GET_RX(mvec)][byte_i++] = write_val;
+			}
+			else
+			{
+				byte_i = 1u;
+				ws_byte[M_MVEC_GET_RX(mvec)][byte_i++] = write_val;
+			}
+			ws_bit[0] = 0;
+			ws_bit[1] = 0;
+		}
+		u8 val = (GPIOC->INDR & GPIO_Pin_2) != RESET;
+		ws_bit[bit_i >> 3U] = (u8)(ws_bit[bit_i >> 3U] << 1U) | val;
+		bit_i++;
+	}
+	M_TIM2_END();
 	return;
 }

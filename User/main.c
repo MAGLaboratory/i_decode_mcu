@@ -56,7 +56,8 @@ vu8 ws_byte[2][C_LEN_MSG] = {0};
 void PetitPortDirTx(void)
 {
 #if defined(SOP8)
-	GPIOA->BSHR = GPIO_Pin_2;
+	// inverted
+	GPIOA->BSHR = GPIO_Pin_2 << 16U;
 #endif // HMI_PCB
 #if defined(BOB)
 	GPIOD->BSHR = GPIO_Pin_4;
@@ -66,7 +67,8 @@ void PetitPortDirTx(void)
 void PetitPortDirRx(void)
 {
 #if defined(SOP8)
-	GPIOA->BSHR = GPIO_Pin_2 << 16U;
+	// inverted
+	GPIOA->BSHR = GPIO_Pin_2;
 #endif // HMI_PCB
 #if defined(BOB)
 	GPIOD->BSHR = GPIO_Pin_4 << 16U;

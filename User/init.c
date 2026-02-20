@@ -264,6 +264,7 @@ void TIME_Init(void)
 	TIM_SelectInputTrigger(TIM2, TIM_TS_TI2FP2);
 	TIM_SelectSlaveMode(TIM2, TIM_SlaveMode_Trigger);
 	TIM_SelectOnePulseMode(TIM2, TIM_OPMode_Single);
+	TIM_ClearFlag(TIM2, TIM_FLAG_Update);
 	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
 	NVIC_SetPriority(TIM2_IRQn, NVIC_PriorityGroup_1);
 	NVIC_EnableIRQ(TIM2_IRQn);
@@ -288,9 +289,8 @@ void TIME_Init(void)
 	TIM_ICInitSt.TIM_Channel = TIM_Channel_2;
 	TIM_ICInitSt.TIM_ICPrescaler = TIM_ICPSC_DIV1;
 	TIM_ICInitSt.TIM_ICFilter = 0;
-	TIM_ICInitSt.TIM_ICPolarity = TIM_ICPolarity_Rising;
+	TIM_ICInitSt.TIM_ICPolarity = TIM_ICPolarity_Falling;
 	TIM_ICInitSt.TIM_ICSelection = TIM_ICSelection_DirectTI;
 	TIM_ICInit(TIM2, &TIM_ICInitSt);
-
 	TIM_ITConfig(TIM2, TIM_IT_CC2, ENABLE);
 }

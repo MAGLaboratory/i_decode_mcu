@@ -125,10 +125,6 @@ void TIM2_IRQHandler(void)
 	if ((TIM2->INTFR & TIM_IT_CC2) != RESET)
 	{
 		TIM2->INTFR = (u16)~TIM_IT_CC2; // clear interrupt bit
-		// timer setting change
-    	TIM1->SMCFGR &= (u16)~(0x2); // set slave mode to reset
-    	TIM1->CTLR1 &= (u16)~TIM_OPM; // set to repetitive mode
-    	TIM1->CTLR1 |= TIM_CEN; // run the timer continuously
 	}
 	// update interrupt
 	if ((TIM2->INTFR & TIM_IT_Update) != RESET)
@@ -154,15 +150,21 @@ void TIM2_IRQHandler(void)
 			}
 
 			// timer settings
-			TIM2->CTLR1 &= (u16)~TIM_CEN; // disable timer
     		TIM2->SMCFGR |= TIM_SlaveMode_Trigger; // set slave mode to trigger
     		TIM2->CTLR1 |= TIM_OPM; // one pulse mode
+			TIM2->CTLR1 &= (u16)~TIM_CEN; // disable timer
 		}
 	}
 	// sample
 	if ((TIM2->INTFR & TIM_IT_CC1) != RESET)
 	{
 		TIM2->INTFR = (u16)~TIM_IT_CC1;
+		u8 val = (GPIOC->INDR & GPIO_Pin_2) != RESET;
+		// timer setting change
+    	TIM2->SMCFGR &= (u16)~(0x2); // set slave mode to reset
+    	TIM2->CTLR1 &= (u16)~TIM_OPM; // set to repetitive mode
+    	TIM2->CTLR1 |= TIM_CEN; // run the timer continuously
+		// bit processing
 		if (bit_i >= 16)
 		{
 			bit_i = 0;
@@ -180,7 +182,6 @@ void TIM2_IRQHandler(void)
 			ws_bit[0] = 0;
 			ws_bit[1] = 0;
 		}
-		u8 val = (GPIOC->INDR & GPIO_Pin_2) != RESET;
 		// bit order is transmitted LSB to MSB
 		ws_bit[bit_i >> 3U] |= (u8)(val << (bit_i & 0x7u));
 		bit_i++;

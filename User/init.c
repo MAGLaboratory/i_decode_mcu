@@ -104,7 +104,10 @@ void APP_GPIO_Init(void)
 	// Pin 4 is the VDD pin
 	//
 	// Pin 5 
-	//
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	// Pin 6: T2CH2 inverter input (PC2)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
@@ -229,7 +232,8 @@ void TIME_Init(void)
 	TIM_ICInitTypeDef TIM_ICInitSt = {0};
 	TIM_OCInitTypeDef TIM_OCInitSt = {0};
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+	// AFIO needed for pin remap
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1 | RCC_APB2Periph_AFIO, ENABLE);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 
 	TIM_DeInit(TIM1);
@@ -252,37 +256,46 @@ void TIME_Init(void)
 	NVIC_SetPriority(TIM1_UP_IRQn, NVIC_PriorityGroup_1);
 	NVIC_EnableIRQ(TIM1_UP_IRQn);
 
+	TIM_DeInit(TIM2);
+
+	// pin remap because the SOP8 package does not have the timer where wanted
+	GPIO_PinRemapConfig(GPIO_PartialRemap1_TIM2, ENABLE);
+
 	// configure timebase TIM2
+	// 41 counts per half baud (205 uS):
+	// 24e6 (clock) / 120 (prescaler) = 200e3
+	// 200e3 * (205e-6) (half baud) = 41 (half baud counts)
+	// 246 counts per three clock cycles (reset)
+	// 41 (half baud counts) * 2 (half baud to baud) * 3 (reset sequence) = 246
 	TIM_TimeBaseStructInit(&TIM_TimeBaseInitSt);
 	TIM_TimeBaseInitSt.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseInitSt.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInitSt.TIM_Period = 3514U - 1U;
-	TIM_TimeBaseInitSt.TIM_Prescaler = 52U - 1U;
+	TIM_TimeBaseInitSt.TIM_Period = 246U - 1U;
+	TIM_TimeBaseInitSt.TIM_Prescaler = 120U - 1U;
 	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitSt);
 
+	TIM_ARRPreloadConfig(TIM2, ENABLE);
 	TIM_InternalClockConfig(TIM2);
 	TIM_SelectInputTrigger(TIM2, TIM_TS_TI2FP2);
 	TIM_SelectSlaveMode(TIM2, TIM_SlaveMode_Trigger);
 	TIM_SelectOnePulseMode(TIM2, TIM_OPMode_Single);
-	TIM_ClearFlag(TIM2, TIM_FLAG_Update);
 	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
-	NVIC_SetPriority(TIM2_IRQn, NVIC_PriorityGroup_1);
-	NVIC_EnableIRQ(TIM2_IRQn);
 
-	// configure OC1 on TIM2
+	// configure OC4 on TIM2
 	TIM_OCStructInit(&TIM_OCInitSt);
 	TIM_OCInitSt.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitSt.TIM_OutputState = TIM_OutputState_Enable; // debugging
 	TIM_OCInitSt.TIM_OutputNState = TIM_OutputNState_Disable;
-	TIM_OCInitSt.TIM_Pulse = 88U;
-	TIM_OCInitSt.TIM_OCPolarity = TIM_OCPolarity_High;
+	TIM_OCInitSt.TIM_Pulse = 41U - 1U;
+	TIM_OCInitSt.TIM_OCPolarity = TIM_OCPolarity_Low; // reset low
 	TIM_OCInitSt.TIM_OCNPolarity = TIM_OCPolarity_High;
 	TIM_OCInitSt.TIM_OCIdleState = TIM_OCIdleState_Reset;
 	TIM_OCInitSt.TIM_OCNIdleState = TIM_OCIdleState_Reset;
-	TIM_OC1Init(TIM2, &TIM_OCInitSt);
-	TIM_ITConfig(TIM2, TIM_IT_CC1, ENABLE);
+	TIM_OC4Init(TIM2, &TIM_OCInitSt);
+	TIM_ITConfig(TIM2, TIM_IT_CC4, ENABLE);
 
-	TIM_CtrlPWMOutputs(TIM2, ENABLE); // debugging
+	// debug pwm output is nice to have
+	TIM_CtrlPWMOutputs(TIM2, ENABLE);
 
 	// configure IC2 on TIM2
 	TIM_ICStructInit(&TIM_ICInitSt);
@@ -292,5 +305,16 @@ void TIME_Init(void)
 	TIM_ICInitSt.TIM_ICPolarity = TIM_ICPolarity_Falling;
 	TIM_ICInitSt.TIM_ICSelection = TIM_ICSelection_DirectTI;
 	TIM_ICInit(TIM2, &TIM_ICInitSt);
-	TIM_ITConfig(TIM2, TIM_IT_CC2, ENABLE);
+
+	// configure IC1 on TIM2
+	TIM_ICStructInit(&TIM_ICInitSt);
+	TIM_ICInitSt.TIM_Channel = TIM_Channel_1;
+	TIM_ICInitSt.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+	TIM_ICInitSt.TIM_ICFilter = 0;
+	TIM_ICInitSt.TIM_ICPolarity = TIM_ICPolarity_Falling;
+	TIM_ICInitSt.TIM_ICSelection = TIM_ICSelection_IndirectTI;
+	TIM_ICInit(TIM2, &TIM_ICInitSt);
+
+	NVIC_SetPriority(TIM2_IRQn, NVIC_PriorityGroup_1);
+	NVIC_EnableIRQ(TIM2_IRQn);
 }

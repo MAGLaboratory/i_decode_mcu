@@ -134,7 +134,7 @@ void TIM2_IRQHandler(void)
 		if ((GPIOC->INDR & GPIO_Pin_2) != RESET)
 		{
 			// reset the structure if sent and new message is ready
-			if (mvec & C_MVEC_READ && byte_i >= 7)
+			if (mvec & C_MVEC_READ && byte_i >= C_LEN_MSG)
 			{
 				// read the message count and increment
 				u8 count = ws_byte[M_MVEC_GET_RX(mvec)][0];
@@ -143,7 +143,7 @@ void TIM2_IRQHandler(void)
 				mvec ^= C_MVEC_RX;
 				mvec &= (u8)~C_MVEC_READ; // clear "read" bit
 				bit_i = 0;
-				byte_i = 0;
+				byte_i = 1u;
 
 				// write the message count
 				ws_byte[M_MVEC_GET_RX(mvec)][0] = count;
@@ -156,9 +156,9 @@ void TIM2_IRQHandler(void)
 		}
 	}
 	// sample
-	if ((TIM2->INTFR & TIM_IT_CC1) != RESET)
+	if ((TIM2->INTFR & TIM_IT_CC4) != RESET)
 	{
-		TIM2->INTFR = (u16)~TIM_IT_CC1;
+		TIM2->INTFR = (u16)~TIM_IT_CC4;
 		u8 val = (GPIOC->INDR & GPIO_Pin_2) != RESET;
 		// timer setting change
     	TIM2->SMCFGR &= (u16)~(0x2); // set slave mode to reset
@@ -174,13 +174,10 @@ void TIM2_IRQHandler(void)
 			{
 				ws_byte[M_MVEC_GET_RX(mvec)][byte_i++] = write_val;
 			}
-			else
-			{
-				byte_i = 1u;
-				ws_byte[M_MVEC_GET_RX(mvec)][byte_i++] = write_val;
-			}
 			ws_bit[0] = 0;
 			ws_bit[1] = 0;
+			
+			GPIOC->OUTDR ^= GPIO_Pin_4; // xor for debug output
 		}
 		// bit order is transmitted LSB to MSB
 		ws_bit[bit_i >> 3U] |= (u8)(val << (bit_i & 0x7u));

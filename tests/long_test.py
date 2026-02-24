@@ -12,27 +12,8 @@ def signal_handler(sig, frame):
 
 """ Signal Handlers Moved """
 
-char_lut = [
-    0x3f, 0x06, 0x5b, 0x4f,
-    0x66, 0x6d, 0x7d, 0x07,
-    0x7f, 0x6f, 0x77, 0x7c,
-    0x39, 0x5e, 0x79, 0x71
-]
-
-def str27seg(s):
-    rv = [0, 0]
-    s = s[::-1]
-    i = 4
-    while i != 0:
-        i -= 1
-        try:
-            rv[i // 2] |= char_lut[int(s[3 - i])] << (0 if i % 2 else 8)
-        except Exception:
-            break
-    return rv
-
 # settings
-testing_count = 1000000
+testing_count = 2000000
 progress = 4  
 pnt_time = True
 pnt_except = True
@@ -61,7 +42,7 @@ def main():
         bar_n = 0
         last_bar = 0
         
-        instr = minimalmodbus.Instrument("/dev/ttyUSB0", 2)
+        instr = minimalmodbus.Instrument("/dev/ttyUSB0", 3)
         instr.serial.baudrate = 38400
         instr.serial.timeout = target_timeout
         instr.clear_buffers_before_each_transaction = False
@@ -82,20 +63,12 @@ def main():
         if pnt_time:
             start_time = time.monotonic()
 
-        last_rem_t = start_time
-        rem = str27seg(str((testing_count - i - 1) // 10 ** extra_digits))
-        
         while i < testing_count:
             my_time = time.monotonic()
-            if (my_time - last_rem_t >= 0.2 or extra_digits < 2):
-                rem = str27seg(str((testing_count - i - 1) // 10 ** extra_digits))
-                last_rem_t = my_time
             try:
                 # write the output coil in case of failure
                 if c_co == 0 or i > 0:
-                    instr.write_register(i % 2, rem[i % 2])
-                else:
-                    instr.write_bit(0, i > 0)
+                    instr.read_registers(0, 4, functioncode=4)
                 c_co = 0
                 succ += 1
                 if progress == 2 or progress == 5:
@@ -159,8 +132,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    for i in range(7):
-        timeout_list.append(i * 0.001 + 0.008)
+    for i in range(2):
+        timeout_list.append(i * 0.001 + 0.011)
 
     main()
 

@@ -106,7 +106,7 @@ void APP_GPIO_Init(void)
 	// Pin 5 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	// Pin 6: T2CH2 inverter input (PC2)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
@@ -116,7 +116,7 @@ void APP_GPIO_Init(void)
 	// Pin 7: Debug? (PC4)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 #endif // SOP8
 #if defined(BOB)
@@ -295,7 +295,9 @@ void TIME_Init(void)
 	TIM_ITConfig(TIM2, TIM_IT_CC4, ENABLE);
 
 	// debug pwm output is nice to have
+#if defined(OUT_DEBUG) && OUT_DEBUG
 	TIM_CtrlPWMOutputs(TIM2, ENABLE);
+#endif
 
 	// configure IC2 on TIM2
 	TIM_ICStructInit(&TIM_ICInitSt);

@@ -1,5 +1,5 @@
 // lengths
-#define C_LEN_MSG (7u)
+#define C_LEN_MSG (8u)
 
 // message vector constants
 #define C_MVEC_RX ((u8)(1u << 0u))
@@ -70,3 +70,7 @@
 #define M_MAIN_START() M_DBG_0_ACT()
 #define M_MAIN_END() M_DBG_0_INA()
 #endif // BOB
+
+// debug constant
+// set to 1 to output debug
+#define OUT_DEBUG (0)

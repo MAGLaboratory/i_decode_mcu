@@ -138,15 +138,16 @@ void TIM2_IRQHandler(void)
 			{
 				// read the message count and increment
 				u8 count = ws_byte[M_MVEC_GET_RX(mvec)][0];
-				count += 1;
+				count += 1u;
 
 				mvec ^= C_MVEC_RX;
 				mvec &= (u8)~C_MVEC_READ; // clear "read" bit
 				bit_i = 0;
-				byte_i = 1u;
+				byte_i = 2u;
 
 				// write the message count
-				ws_byte[M_MVEC_GET_RX(mvec)][0] = count;
+				ws_byte[M_MVEC_GET_RX(mvec)][0u] = count;
+				ws_byte[M_MVEC_GET_RX(mvec)][1u] = 0;
 			}
 
 			// timer settings
@@ -164,24 +165,30 @@ void TIM2_IRQHandler(void)
     	TIM2->SMCFGR &= (u16)~(0x2); // set slave mode to reset
     	TIM2->CTLR1 &= (u16)~TIM_OPM; // set to repetitive mode
     	TIM2->CTLR1 |= TIM_CEN; // run the timer continuously
+		// bit order is transmitted LSB to MSB
+		ws_bit[bit_i >> 3U] |= (u8)(val << (bit_i & 0x7u));
+		bit_i++;
 		// bit processing
 		if (bit_i >= 16)
 		{
 			bit_i = 0;
 			// byte doublbing defaults to 0 if the bytes do not match
-			u8 write_val = ws_bit[0u] == ws_bit[1u] ? ws_bit[1u] : 0u;
+			u8 write_val = ws_bit[1u];
+			if (ws_bit[0u] != ws_bit[1u])
+			{
+				write_val = 0u;
+				ws_byte[M_MVEC_GET_RX(mvec)][1] |= 1 << (byte_i - 2u);
+			}
 			if (byte_i < C_LEN_MSG)
 			{
 				ws_byte[M_MVEC_GET_RX(mvec)][byte_i++] = write_val;
 			}
 			ws_bit[0] = 0;
 			ws_bit[1] = 0;
-			
+#if defined(OUT_DEBUG) && OUT_DEBUG
 			GPIOC->OUTDR ^= GPIO_Pin_4; // xor for debug output
+#endif
 		}
-		// bit order is transmitted LSB to MSB
-		ws_bit[bit_i >> 3U] |= (u8)(val << (bit_i & 0x7u));
-		bit_i++;
 	}
 	M_TIM2_END();
 	return;

@@ -49,7 +49,7 @@ vu8 modbus_arm = false;
 vu32 modbus_timer;
 vu8 mvec = 0;
 vu8 bit_i = 0;
-vu8 byte_i = 0;
+vu8 byte_i = 2u;
 vu8 ws_bit[2] = {0};
 vu8 ws_byte[2][C_LEN_MSG] = {0};
 
@@ -97,21 +97,12 @@ void PetitT15TimerStop(void)
 
  pb_t PetitPortInputRegRead(pu16_t Addr, pu16_t* Data)
  {
-	pu16_t tmpDat = 0;
-	if (Addr == 0)
-	{
-		tmpDat = ws_byte[M_MVEC_GET_TX(mvec)][Addr];
-	}
-	else
-	{
-		tmpDat = (ws_byte[M_MVEC_GET_TX(mvec)][2u*Addr] << 8u) |
-				ws_byte[M_MVEC_GET_TX(mvec)][2u*Addr-1u];
-	}
+	*Data = (ws_byte[M_MVEC_GET_TX(mvec)][2u*Addr] << 8u) |
+			ws_byte[M_MVEC_GET_TX(mvec)][2u*Addr+1];
 	if (Addr == 3U)
 	{
 		mvec |= C_MVEC_READ; // set "read" bit
 	}
-	*Data = tmpDat;
 	return 1;
  }
 
